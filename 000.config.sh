@@ -12,9 +12,9 @@ DOCK_ROOT="/gpfs/projects/rizzo/iamanor/DOCK6_Development/Dynamics_Referencing/f
 DOCK_BIN="${DOCK_ROOT}/bin/dock6"
 DOCK_PARAMS="${DOCK_ROOT}/parameters"
 
-VDW_DEFN_FILE="${DOCK_PARAMS}/vdw_AMBER_parm99.defn"
-FLEX_DEFN_FILE="${DOCK_PARAMS}/flex.defn"
-FLEX_DRIVE_FILE="${DOCK_PARAMS}/flex_drive.tbl"
+VDW_DEFN_FILE="${DOCK_PARAMS}/vdw_de_novo.defn"
+FLEX_DEFN_FILE="/gpfs/projects/rizzo/zzz.programs/dock6.9_mpiv2018.0.3/parameters/flex.defn"
+FLEX_DRIVE_FILE="/gpfs/projects/rizzo/zzz.programs/dock6.9_mpiv2018.0.3/parameters/flex_drive.tbl"
 CHEM_DEFN_FILE="${DOCK_PARAMS}/chem.defn"
 
 FRAGLIB_ROOT="/gpfs/projects/rizzo/iamanor/Systems_and_Library_Files/003_Libraries/DOCK_DN_Generic_Library/DOCK6.13_Library"
