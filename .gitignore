@@ -1,0 +1,44 @@
+# Generated receptor-system calculations
+1EQH/
+1EVE/
+1HWI/
+1HXB/
+1M17/
+1O86/
+1S19/
+1T3R/
+1X70/
+1XMU/
+2GQG/
+2P16/
+2Y04/
+3IK3/
+4P6W/
+4WMZ/
+4XE0/
+5ZV2/
+6HLO/
+6ME2/
+7CMU/
+
+# Generated workflow files
+LISTOFSYSTEMS.txt
+DRef_tasks.tsv
+
+# SLURM output
+DRef_slurm_*.out
+DRef_rescore_*.out
+slurm-*.out
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated analysis
+StatisticsHMS.txt
+StatisticsGRD.txt
+StatisticsTAN.txt
+StatisticsVOL.txt
+
+# Temporary files
+tmp_patch.py
