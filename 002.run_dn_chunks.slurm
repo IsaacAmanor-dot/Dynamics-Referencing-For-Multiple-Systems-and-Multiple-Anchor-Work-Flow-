@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# We require the workflow directory exported by the submission script so each
+# SLURM array job can locate the shared configuration and execution scripts.
+
 if [[ -z "${DREF_WORK_ROOT:-}" ]]; then
     echo "ERROR: DREF_WORK_ROOT was not supplied by the submission script."
     exit 1
@@ -10,12 +13,20 @@ fi
 SCRIPT_DIR="${DREF_WORK_ROOT}"
 source "${SCRIPT_DIR}/000.config.sh"
 
+# We require the SLURM array index because it determines which block of
+# system-anchor calculations is assigned to this node.
+
 if [[ -z "${SLURM_ARRAY_TASK_ID:-}" ]]; then
     echo "ERROR: SLURM_ARRAY_TASK_ID is not set."
     exit 1
 fi
 
+# We determine the total number of calculations directly from the task list.
+
 TOTAL_TASKS=$(awk 'NR > 1 {count++} END {print count+0}' "${TASK_LIST}")
+
+# Each array element receives one contiguous block of calculations defined by
+# TASKS_PER_NODE. The final block is shortened when necessary.
 
 START_TASK=$(( (SLURM_ARRAY_TASK_ID - 1) * TASKS_PER_NODE + 1 ))
 END_TASK=$(( START_TASK + TASKS_PER_NODE - 1 ))
@@ -39,8 +50,14 @@ echo "Task range:  ${START_TASK}-${END_TASK}"
 echo "Started:     $(date)"
 echo
 
+# We retain the process IDs and task IDs so all calculations launched on this
+# node can be monitored independently.
+
 PIDS=()
 TASK_IDS=()
+
+# We recover each assigned system-anchor calculation from the task list and
+# launch the common run_dn.sh execution script in parallel.
 
 for (( TASK_ID=START_TASK; TASK_ID<=END_TASK; TASK_ID++ )); do
 
@@ -74,6 +91,9 @@ for (( TASK_ID=START_TASK; TASK_ID<=END_TASK; TASK_ID++ )); do
 
 done
 
+# We wait for every calculation launched by this array element and record any
+# failed execution before allowing the chunk to finish.
+
 FAILURES=0
 
 for INDEX in "${!PIDS[@]}"; do
@@ -95,6 +115,9 @@ echo "Chunk finished: $(date)"
 echo "Tasks launched: ${#TASK_IDS[@]}"
 echo "Failures: ${FAILURES}"
 echo
+
+# A nonzero exit status identifies a SLURM chunk containing at least one
+# failed system-anchor calculation.
 
 if (( FAILURES > 0 )); then
     exit 1

@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+# We read each comma-separated score trajectory and standardize its length for
+# comparison across molecular growth histories.
+
 def read_score_strings(filename, max_segments=11):
 
     series = []
@@ -28,6 +31,9 @@ def read_score_strings(filename, max_segments=11):
 
             values = values[:max_segments]
 
+            # Shorter growth trajectories are padded with NaN so they can be
+            # plotted on the same segment axis without introducing score values.
+
             if len(values) < max_segments:
                 values.extend(
                     [np.nan] * (max_segments - len(values))
@@ -41,6 +47,9 @@ def read_score_strings(filename, max_segments=11):
 
 
 def main():
+
+    # We define the static-reference and Dynamic Reference score-string inputs,
+    # the maximum number of growth segments, and the output figure.
 
     parser = argparse.ArgumentParser()
 
@@ -72,6 +81,9 @@ def main():
     static_file = Path(args.static)
     dynamic_file = Path(args.dynamic)
 
+    # We plot the static-reference score trajectories when the corresponding
+    # input file is available.
+
     if static_file.is_file():
 
         for values in read_score_strings(
@@ -86,6 +98,9 @@ def main():
                 alpha=0.5,
             )
 
+    # We plot the Dynamic Reference trajectories on the same axes for direct
+    # comparison with the static-reference trajectories.
+
     if dynamic_file.is_file():
 
         for values in read_score_strings(
@@ -99,6 +114,9 @@ def main():
                 color="green",
                 alpha=0.5,
             )
+
+    # We label the molecular growth and Descriptor Score axes and save the
+    # comparison figure at publication-quality resolution.
 
     plt.xlabel("Added Segments")
     plt.ylabel("Score: 25*HMS + 1*GRD")

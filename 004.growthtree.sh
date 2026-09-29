@@ -2,13 +2,19 @@
 
 set -euo pipefail
 
+# We load the shared experiment paths, DOCK installation, and parameter files.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
+
+# We require the receptor-system list used throughout the experiment.
 
 if [[ ! -s "${SYSTEM_LIST}" ]]; then
     echo "ERROR: Missing ${SYSTEM_LIST}"
     exit 1
 fi
+
+# We analyze molecular growth independently across De Novo layers 1 through 9.
 
 for LAYER in $(seq 1 9); do
 
@@ -29,6 +35,9 @@ for LAYER in $(seq 1 9); do
 
         FOUND=0
 
+        # We combine the molecules generated at the current growth layer across
+        # all available anchors for the receptor system.
+
         for MOL2 in anc_*/output.anchor_1.root_layer_"${LAYER}".mol2; do
 
             [[ -s "${MOL2}" ]] || continue
@@ -42,6 +51,9 @@ for LAYER in $(seq 1 9); do
             echo "${REF_SYS} layer ${LAYER}: no molecules found"
             continue
         fi
+
+        # We rigidly rescore the combined layer-specific molecular ensemble
+        # against the full reference ligand and retain the top-ranked molecule.
 
         cat > hungarian_layer_${LAYER}.in << EOF_IN
 conformer_search_type                                        rigid
@@ -117,12 +129,18 @@ EOF_IN
             continue
         fi
 
+        # We recover the fragment string associated with the best molecule from
+        # the ranked layer-specific rescoring output.
+
         FRAGSTRING=$(grep -A1 "USER_CHARGES" "${RANKED}" | tail -n1 || true)
 
         if [[ -z "${FRAGSTRING}" ]]; then
             echo "WARNING: Fragment string not found for ${REF_SYS}, layer ${LAYER}"
             continue
         fi
+
+        # We use the fragment string to trace the selected molecule back to its
+        # original anchor-specific De Novo growth tree.
 
         FILE=$(grep -l -F "${FRAGSTRING}" anc_*/output.growth_tree*.mol2 2>/dev/null | head -n1 || true)
 

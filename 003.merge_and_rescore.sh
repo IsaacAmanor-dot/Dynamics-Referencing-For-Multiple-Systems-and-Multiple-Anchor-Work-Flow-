@@ -2,18 +2,27 @@
 
 set -euo pipefail
 
+# We load the shared experiment paths, DOCK installation, and parameter files.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
+
+# We require the validated receptor-system list generated during setup.
 
 if [[ ! -s "${SYSTEM_LIST}" ]]; then
     echo "ERROR: Missing ${SYSTEM_LIST}"
     exit 1
 fi
 
+# We initialize experiment-wide statistics files for the four similarity and
+# scoring quantities extracted during post-generation rescoring.
+
 : > "${WORK_ROOT}/StatisticsHMS.txt"
 : > "${WORK_ROOT}/StatisticsGRD.txt"
 : > "${WORK_ROOT}/StatisticsTAN.txt"
 : > "${WORK_ROOT}/StatisticsVOL.txt"
+
+# We process the generated molecules from each receptor system independently.
 
 while read -r REF_SYS; do
 
@@ -29,6 +38,9 @@ while read -r REF_SYS; do
 
     cd "${SYSTEM_RUN}"
 
+    # We remove previous merged, rescored, and extracted analysis products so
+    # the current analysis is generated from the available De Novo calculations.
+
     rm -f \
         "${REF_SYS}_HMS.txt" \
         "${REF_SYS}_GRD.txt" \
@@ -42,6 +54,9 @@ while read -r REF_SYS; do
     : > All_Anchors.mol2
 
     MERGED=0
+
+    # We combine the completed De Novo molecular outputs from all available
+    # anchors into one multi-MOL2 ensemble for this receptor system.
 
     for MOL2 in anc_*/output.denovo_build.mol2; do
 
@@ -58,6 +73,9 @@ while read -r REF_SYS; do
     fi
 
     echo "Merged anchor files: ${MERGED}"
+
+    # We construct the rigid Descriptor Score calculation used to rescore the
+    # combined molecular ensemble against the system-specific reference ligand.
 
     cat > hungarian.in << EOF_IN
 conformer_search_type                                        rigid
@@ -122,9 +140,14 @@ rank_ligands                                                 yes
 max_ranked_ligands                                           100
 EOF_IN
 
+    # We execute the rigid rescoring calculation for the combined molecular set.
+
     "${DOCK_BIN}" \
         -i hungarian.in \
         -o hungarian.out
+
+    # We extract and numerically sort HMS, Grid, Tanimoto, and Volume scores
+    # from the rescored molecular output.
 
     grep "Hungarian_Matching_Similarity_Score" \
         "${REF_SYS}_rescored_fullref"* 2>/dev/null |
@@ -146,6 +169,9 @@ EOF_IN
         awk '{print $3}' |
         sort -n > "${REF_SYS}_VOL.txt" || true
 
+    # For HMS, the lowest score in the sorted distribution is retained as the
+    # best value together with the system-wide average.
+
     if [[ -s "${REF_SYS}_HMS.txt" ]]; then
 
         AVG=$(awk '{sum += $1; n++} END {if (n > 0) print sum/n}' "${REF_SYS}_HMS.txt")
@@ -155,6 +181,8 @@ EOF_IN
             >> "${WORK_ROOT}/StatisticsHMS.txt"
 
     fi
+
+    # For Grid Score, the lowest score is retained as the best value.
 
     if [[ -s "${REF_SYS}_GRD.txt" ]]; then
 
@@ -166,6 +194,8 @@ EOF_IN
 
     fi
 
+    # For Tanimoto similarity, the highest value is retained as the best match.
+
     if [[ -s "${REF_SYS}_TAN.txt" ]]; then
 
         AVG=$(awk '{sum += $1; n++} END {if (n > 0) print sum/n}' "${REF_SYS}_TAN.txt")
@@ -175,6 +205,8 @@ EOF_IN
             >> "${WORK_ROOT}/StatisticsTAN.txt"
 
     fi
+
+    # For Volume overlap, the highest value is retained as the best match.
 
     if [[ -s "${REF_SYS}_VOL.txt" ]]; then
 

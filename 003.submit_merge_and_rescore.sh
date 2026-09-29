@@ -2,8 +2,13 @@
 
 set -euo pipefail
 
+# We load the workflow directory and shared SLURM resource settings.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
+
+# We submit the merge and rescoring analysis as a separate one-node SLURM job
+# after the De Novo molecular generation stage.
 
 JOB_ID=$(sbatch \
     --parsable \

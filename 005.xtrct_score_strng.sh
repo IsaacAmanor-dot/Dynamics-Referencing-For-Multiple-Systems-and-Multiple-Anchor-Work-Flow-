@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+# We load the shared workflow configuration and receptor-system list.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
 
@@ -9,6 +11,9 @@ if [[ ! -s "${SYSTEM_LIST}" ]]; then
     echo "ERROR: Missing ${SYSTEM_LIST}"
     exit 1
 fi
+
+# We extract the De Novo score trajectory associated with molecules retained
+# in the final ranked rescoring output for each receptor system.
 
 while read -r REF_SYS; do
 
@@ -23,11 +28,17 @@ while read -r REF_SYS; do
         continue
     fi
 
+    # We collect the fragment strings associated with molecules in the ranked
+    # MOL2 file so they can be traced back to their original De Novo outputs.
+
     grep -A1 "USER_CHARGES" "${RANKED}" |
         grep '\.' > fragstring_list.txt || true
 
     : > scorestrings.txt
     : > scorestrs.txt
+
+    # For each selected fragment string, we recover its corresponding score
+    # trajectory from the anchor-specific De Novo output.
 
     while read -r STRING; do
 
@@ -38,6 +49,9 @@ while read -r REF_SYS; do
             tail -n1 >> scorestrings.txt || true
 
     done < fragstring_list.txt
+
+    # We remove the first comma-separated field and retain the numerical score
+    # sequence used for subsequent trajectory analysis and plotting.
 
     awk -F',' '
     {
