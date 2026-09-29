@@ -2,10 +2,14 @@
 
 set -euo pipefail
 
+# We load all experiment paths and computational settings from one configuration file.
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
 
 ERRORS=0
+
+# We use one validation function to identify missing files required by the experiment.
 
 check_file()
 {
@@ -22,6 +26,9 @@ echo
 echo "Validating Dynamic Reference workflow..."
 echo
 
+# We validate the required DOCK executable, fragment libraries, and parameter
+# files before generating any calculations.
+
 if [[ ! -x "${DOCK_BIN}" ]]; then
     echo "ERROR: DOCK binary is not executable: ${DOCK_BIN}"
     ERRORS=$((ERRORS + 1))
@@ -34,6 +41,9 @@ check_file "torsion environment table" "${FRAGLIB_TORENV}"
 check_file "VDW definition" "${VDW_DEFN_FILE}"
 check_file "flex definition" "${FLEX_DEFN_FILE}"
 check_file "flex drive table" "${FLEX_DRIVE_FILE}"
+
+# We identify the 140 anchor molecules used to initialize independent De Novo
+# growth calculations.
 
 N_ANCHORS=140
 
@@ -52,6 +62,8 @@ if (( ${#ANCHORS[@]} == 0 )); then
     ERRORS=$((ERRORS + 1))
 fi
 
+# We identify the receptor systems available for the multi-system experiment.
+
 mapfile -t SYSTEMS < <(
     find "${SYSTEM_ROOT}" \
         -mindepth 1 \
@@ -66,11 +78,15 @@ if (( ${#SYSTEMS[@]} == 0 )); then
     ERRORS=$((ERRORS + 1))
 fi
 
+# We stop input generation if any shared dependency is missing.
+
 if (( ERRORS > 0 )); then
     echo
     echo "Validation failed with ${ERRORS} error(s)."
     exit 1
 fi
+
+# We rebuild the system list using only receptor systems with all required files.
 
 : > "${SYSTEM_LIST}"
 
@@ -88,6 +104,9 @@ for REF_SYS in "${SYSTEMS[@]}"; do
     GRID_PREFIX="${SYSTEM_DIR}/${REF_SYS}.rec"
 
     SYSTEM_OK=yes
+
+    # Each receptor system requires its reference ligand, matching spheres, and
+    # grid energy files before it can enter the experiment.
 
     for FILE in \
         "${REF_LIGAND}" \
@@ -121,6 +140,9 @@ echo
 echo "Generating Dynamic Reference De Novo inputs..."
 echo
 
+# We generate one independent De Novo calculation for every validated
+# receptor-system and anchor combination.
+
 while read -r REF_SYS; do
 
     SYSTEM_SOURCE="${SYSTEM_ROOT}/${REF_SYS}"
@@ -141,6 +163,9 @@ while read -r REF_SYS; do
         RUN_DIR="${SYSTEM_RUN}/anc_${ANCHOR_ID}"
 
         mkdir -p "${RUN_DIR}"
+
+        # We write the DOCK input for this system-anchor calculation using the
+        # system-specific reference, receptor, and grid files.
 
         cat > "${RUN_DIR}/dn_generic.in" << EOF_IN
 conformer_search_type                                        denovo
