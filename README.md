@@ -1,73 +1,116 @@
-# Dynamic Referencing De Novo Workflow in DOCK6
+# Dynamic Reference De Novo Multi-System Workflow
 
-This workflow performs multi-system De Novo molecular generation using the Dynamic Referencing implementation in DOCK6.
+This workflow automates DOCK De Novo calculations using **Dynamic Referencing (DRef)** across multiple receptor systems and multiple starting anchors.
 
-For each receptor system, De Novo calculations are performed independently using user-specified anchor fragments. The workflow generates the DOCK input files, constructs a task list, distributes independent calculations across SLURM compute nodes, and provides scripts for merging, rescoring, and analyzing the generated molecules.
-
-The current experiment uses anchors 1 through 140 for each receptor system.
+For each receptor system, independent De Novo calculations are generated from 140 anchors, distributed through SLURM, and analyzed after completion.
 
 ## Workflow
 
-The scripts should be run in the following order.
+Run the scripts from the workflow directory in the following order.
 
 ### 1. Check the configuration
 
-All paths and SLURM settings are defined in:
+```bash
+bash 000.config.sh
+```
 
-    000.config.sh
-
-Inspect the configuration with:
-
-    bash 000.config.sh
+Defines the receptor systems, anchors, DOCK installation, fragment libraries, parameter files, and SLURM settings.
 
 ### 2. Generate De Novo input files
 
-    bash 001.write_files_hms_grid.sh
+```bash
+bash 001.write_files_hms_grid.sh
+```
 
-This discovers the receptor systems and anchors and generates a `dn_generic.in` file for each system-anchor combination.
+Validates the required files and generates one DRef De Novo calculation for every receptor-system and anchor combination.
 
-### 3. Generate the task list
+### 3. Create the task list
 
-    bash 002.make_task_list.sh
+```bash
+bash 002.make_task_list.sh
+```
 
-This creates `DRef_tasks.tsv`, containing one independent De Novo calculation per task.
+Creates `DRef_tasks.tsv`, which contains all system-anchor calculations.
 
-### 4. Submit the De Novo calculations
+### 4. Submit De Novo calculations
 
-    bash 002.submit_dn_jobs.sh
+```bash
+bash 002.submit_dn_jobs.sh
+```
 
-The workflow distributes the calculations across `rn-long-40core` nodes, with up to 40 independent serial DOCK calculations per node and a maximum of 3 nodes running concurrently.
+Calculations are distributed through the SLURM workflow:
 
-### 5. Merge and rescore generated molecules
+```text
+002.submit_dn_jobs.sh
+        |
+        v
+002.run_dn_chunks.slurm
+        |
+        v
+run_dn.sh
+        |
+        v
+DOCK De Novo
+```
 
-After the De Novo calculations are complete:
+### 5. Check progress
 
-    bash 003.submit_merge_and_rescore.sh
+```bash
+bash 007.check_progress.sh
+```
 
-This merges molecules generated from the anchors for each receptor system and performs full-reference rescoring.
+Reports completed, failed, and pending calculations for each receptor system and the complete experiment.
 
-### 6. Analyze growth trees
+### 6. Merge and rescore
 
-    bash 004.growthtree.sh
+```bash
+bash 003.submit_merge_and_rescore.sh
+```
 
-This evaluates molecules generated at the different growth layers and identifies the growth tree associated with the best-scoring molecule.
+Merges available De Novo molecules for each system and performs rigid Descriptor Score rescoring against the full reference ligand.
 
-### 7. Extract score strings
+### 7. Analyze growth trees
 
-    bash 005.xtrct_score_strng.sh
+```bash
+bash 004.growthtree.sh
+```
 
-This extracts score progression information from the generated molecules for downstream analysis.
+Identifies the growth tree associated with the best rescored molecule at each De Novo growth layer.
 
-## Main scripts
+### 8. Extract score trajectories
 
-- `000.config.sh` — central workflow configuration.
-- `001.write_files_hms_grid.sh` — generates system/anchor De Novo inputs.
-- `002.make_task_list.sh` — constructs the calculation task list.
-- `002.run_dn_chunks.slurm` — executes node-sized groups of De Novo calculations.
-- `002.submit_dn_jobs.sh` — submits the production SLURM array.
-- `run_dn.sh` — executes one system-anchor DOCK calculation.
-- `003.merge_and_rescore.sh` — merges generated molecules and performs full-reference rescoring.
-- `003.submit_merge_and_rescore.sh` — submits the rescoring calculation.
-- `004.growthtree.sh` — performs growth-layer analysis.
-- `005.xtrct_score_strng.sh` — extracts score strings.
-- `006.plot_score_strng.py` — plots score progression data.
+```bash
+bash 005.xtrct_score_strng.sh
+```
+
+Extracts the score trajectories of selected molecules during De Novo growth.
+
+### 9. Plot score trajectories
+
+```bash
+python 006.plot_score_strng.py
+```
+
+Plots score trajectories for comparison between static and Dynamic Referencing calculations.
+
+## Main Execution Order
+
+```text
+000.config.sh
+      |
+001.write_files_hms_grid.sh
+      |
+002.make_task_list.sh
+      |
+002.submit_dn_jobs.sh
+      |
+007.check_progress.sh
+      |
+003.submit_merge_and_rescore.sh
+      |
+004.growthtree.sh
+      |
+005.xtrct_score_strng.sh
+      |
+006.plot_score_strng.py
+```
