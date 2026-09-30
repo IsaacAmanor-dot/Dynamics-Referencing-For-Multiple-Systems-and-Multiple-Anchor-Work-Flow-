@@ -57,7 +57,7 @@ if [[ ${DOCK_EXIT} -eq 0 ]] \
     && [[ -s "${OUTPUT_FILE}" ]] \
     && grep -q "Total elapsed time" "${OUTPUT_FILE}"; then
 
-    touch "${SUCCESS_FILE}"
+    : > "${SUCCESS_FILE}"
 
     echo
     echo "SUCCESS: ${REF_SYS} anchor ${ANCHOR_ID}"
@@ -67,7 +67,7 @@ if [[ ${DOCK_EXIT} -eq 0 ]] \
     exit 0
 fi
 
-touch "${FAILED_FILE}"
+: > "${FAILED_FILE}"
 
 echo
 echo "FAILED: ${REF_SYS} anchor ${ANCHOR_ID}"
