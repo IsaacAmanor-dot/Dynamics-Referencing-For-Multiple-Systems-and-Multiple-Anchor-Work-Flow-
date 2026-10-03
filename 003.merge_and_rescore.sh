@@ -4,8 +4,8 @@ set -euo pipefail
 
 # We load the shared experiment paths, DOCK installation, and parameter files.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/000.config.sh"
+WORK_DIR="$(pwd)"
+source "${WORK_DIR}/000.config.sh"
 
 # We require the validated receptor-system list generated during setup.
 
